@@ -2,7 +2,7 @@
 
 基于比特多登浏览器的facebook，Instagram，tiktok页面自动化操作程序
 
-###Facebook
+### Facebook
 1.fb添加推荐好友
 
 2.fb通过好友请求
@@ -39,5 +39,5 @@ Not enough rights to use WM_*BUTTONDOWN/UP message/function for target process (
 >> python facebook_task.py 
 ```
 
-###Instagram
-###Tiktok
+### Instagram
+### Tiktok
