@@ -8,6 +8,7 @@
 @Desc    :    fb自动化脚本
 @contact :    zrq17777813307@163.com
 """
+import sys
 import os
 import random
 from typing import List
@@ -16,6 +17,7 @@ import requests
 import pandas
 import pywinauto
 from pywinauto.keyboard import send_keys
+from tqdm import tqdm
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -64,6 +66,7 @@ class FacebookTask:
     def __init__(self, excel_path: str):
         self.excel_path = excel_path
         self.task = self.get_task()
+        # print(self.task[0].group_link)
         self.start_task()
 
     def get_task(self) -> List[TaskModel]:
@@ -87,7 +90,10 @@ class FacebookTask:
 
     def start_task(self):
         """开始任务"""
-        for one_task in self.task:
+        task_num = 0
+        for i in tqdm(range(1, len(self.task) + 1)):
+
+            one_task = self.task[task_num]
             # 每一个任务对应一个浏览器配置
             driver = StartChrome(one_task.id).start_chrome()
             current_windows = driver.window_handles
@@ -115,73 +121,76 @@ class FacebookTask:
                 element.click()
             time.sleep(3)
             # 邀请好友为指定的公共主页点赞 5位好友
-            driver.get(one_task.pub_page_link)
-            value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[3]/div/div/div/div[2]/div/div/div[3]/div'
-            WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-            value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div/div[1]/div/div[4]'
-            WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-            time.sleep(5)
-            value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div[5]/div/div[1]/div[@data-visualcompletion="ignore-dynamic"]/div[@role="checkbox"]'
-            check_box_element = driver.find_elements(by=By.XPATH, value=value)
-            for element in check_box_element[:5]:
-                time.sleep(1.5)
-                element.click()
+            if str(one_task.pub_page_link) != 'nan':
+                driver.get(one_task.pub_page_link)
+                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[3]/div/div/div/div[2]/div/div/div[3]/div'
+                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div/div[1]/div/div[4]'
+                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                time.sleep(5)
+                value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div[5]/div/div[1]/div[@data-visualcompletion="ignore-dynamic"]/div[@role="checkbox"]'
+                check_box_element = driver.find_elements(by=By.XPATH, value=value)
+                for element in check_box_element[:5]:
+                    time.sleep(1.5)
+                    element.click()
 
-            value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[4]/div[2]/div[2]/div'
-            WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-            time.sleep(3)
+                value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[4]/div[2]/div[2]/div'
+                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                time.sleep(3)
             # 指定公共主页分享
-            driver.get(one_task.pub_page_link)
-            for i in range(3):
-                time.sleep(1)
-                driver.execute_script(f'window.scrollBy(0, {random.randint(200, 500)})')
-            time.sleep(3)
-            value = '//div[@role="main"]/div[@class="k4urcfbm"]/div/div/div/div/div[@role="article"]/div/div/div/div/div/div[2]/div/div[last()]/div/div/div/div/div/div/div[last()]/div[@role="button"]'
-            share_element = driver.find_elements(by=By.XPATH, value=value)
-            # print(share_element)
-            for element in share_element[:3]:
-                element.click()
-                share_value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div[1]/div/div[1]/div'
-                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, share_value))).click()
-                time.sleep(2)
-            # 加入指定公共小组
-            driver.get(one_task.group_link)
-            value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[1]/div/div[1]/div[1]/div[2]/div/div[4]/div/div/div/div/div[1]/div/div/div'
-            WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-            time.sleep(3)
+                driver.get(one_task.pub_page_link)
+                for i in range(3):
+                    time.sleep(1)
+                    driver.execute_script(f'window.scrollBy(0, {random.randint(200, 500)})')
+                time.sleep(3)
+                value = '//div[@role="main"]/div[@class="k4urcfbm"]/div/div/div/div/div[@role="article"]/div/div/div/div/div/div[2]/div/div[last()]/div/div/div/div/div/div/div[last()]/div[@role="button"]'
+                share_element = driver.find_elements(by=By.XPATH, value=value)
+                # print(share_element)
+                for element in share_element[:3]:
+                    element.click()
+                    share_value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div[1]/div/div[1]/div'
+                    WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, share_value))).click()
+                    time.sleep(2)
+            if str(one_task.group_link) != 'nan':
+                # 加入指定公共小组
+                driver.get(one_task.group_link)
+                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[1]/div/div[1]/div[1]/div[2]/div/div[4]/div/div/div/div/div[1]/div/div/div'
+                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                time.sleep(3)
             # 发表帖子
-            dir_path = one_task.media_path
-            file_list = os.listdir(dir_path)
-            # print(file_list)
-            picture_list = [f'"{i}"' for i in file_list if 'txt' not in i]
-            # print(picture_list)
-            text_path = one_task.media_path + r'\txt.txt'
-            # print(text_path)
-            with open(text_path, 'r', encoding='utf-8') as file:
-                content = file.read()
-            # print(content)
+            if str(one_task.media_path) != 'nan':
+                dir_path = one_task.media_path
+                file_list = os.listdir(dir_path)
+                # print(file_list)
+                picture_list = [f'"{i}"' for i in file_list if 'txt' not in i]
+                # print(picture_list)
+                text_path = one_task.media_path + r'\txt.txt'
+                # print(text_path)
+                with open(text_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+                # print(content)
 
-            driver.get('https://www.facebook.com')
-            value = '//body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div/div[1]/div'
-            WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-            value = '//body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[1]/div[1]/div/div/div/div/div/div/div[2]/div'
-            WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(content)
-            value = '//body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[3]/div[1]/div[2]/div/div[1]/div/span/div'
-            WebDriverWait(driver, 3).until(ec.presence_of_element_located((By.XPATH, value))).click()
-            value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[2]/div/div[1]/div/div/div'
-            WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
-            app = pywinauto.Desktop()
-            window = app['打开']
-            window['Toolbar3'].click()
-            send_keys(one_task.media_path)
-            send_keys("{VK_RETURN}")
-            window['文件名(&N):Edit'].type_keys(' '.join(picture_list))
-            window["打开(&O)"].click()
-            time.sleep(5)
-            value = '//div[@aria-label="发帖"]'
+                driver.get('https://www.facebook.com')
+                value = '//body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div/div[1]/div'
+                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                value = '//body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[1]/div[1]/div/div/div/div/div/div/div[2]/div'
+                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(content)
+                value = '//body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[3]/div[1]/div[2]/div/div[1]/div/span/div'
+                WebDriverWait(driver, 3).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[2]/div/div[1]/div/div/div'
+                WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                app = pywinauto.Desktop()
+                window = app['打开']
+                window['Toolbar3'].click()
+                send_keys(one_task.media_path)
+                send_keys("{VK_RETURN}")
+                window['文件名(&N):Edit'].type_keys(' '.join(picture_list))
+                window["打开(&O)"].click()
+                time.sleep(5)
+                value = '//div[@aria-label="发帖"]'
 
-            WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-            time.sleep(10)
+                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                time.sleep(10)
             # 点赞帖子
             driver.get('https://www.facebook.com')
             for i in range(10):
@@ -193,6 +202,12 @@ class FacebookTask:
             for element in like_element[::-1]:
                 time.sleep(1.5)
                 element.click()
+            headers = {'id': one_task.id}  # TODO 比特浏览器
+            requests.post(close_page, json=headers)
+            task_num += 1
+            print(f'正在进行第{task_num}个任务中，共计{len(self.task)}个任务')
+            # time.sleep(1)
+            os.system('cls')
 
 
 if __name__ == '__main__':
