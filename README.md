@@ -21,7 +21,7 @@
 ```gitexclude
 >> git clone https://github.com/sheridan77/fb_ins_tiktok.git
 >> cd fb_ins_tiktok
->> python venv venv
+>> python -m venv venv
 >> venv\Scripts\activate
 >> pip install -r requirements.txt
 ```
