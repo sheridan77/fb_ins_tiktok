@@ -148,7 +148,11 @@ class FacebookTask:
                 driver.get(one_task.pub_page_link)
                 for _ in range(3):
                     time.sleep(1)
-                    driver.execute_script(f'window.scrollBy(0, {random.randint(200, 500)})')
+                    try:
+                        driver.execute_script(f'window.scrollBy(0, {random.randint(1000, 1500)})')
+                    except Exception as e:
+                        time.sleep(3)
+                        continue
                 time.sleep(3)
                 value = '//div[@role="main"]/div[@class="k4urcfbm"]/div/div/div/div/div[@role="article"]/div/div/div/div/div/div[2]/div/div[last()]/div/div/div/div/div/div/div[last()]/div[@role="button"]'
                 share_element = driver.find_elements(by=By.XPATH, value=value)
@@ -213,9 +217,12 @@ class FacebookTask:
             # 点赞帖子
             driver.get('https://www.facebook.com')
             for _ in range(10):
-                time.sleep(1)
-                driver.execute_script(f'window.scrollBy(0, {random.randint(500, 1000)})')
-            time.sleep(3)
+                try:
+                    time.sleep(1)
+                    driver.execute_script(f'window.scrollBy(0, {random.randint(500, 1000)})')
+                except Exception as e:
+                    time.sleep(3)
+                    continue
             value = '//div[@role="feed"]/div/div/div/div/div/div/div/div/div/div/div/div[last()]/div/div[last()]/div/div/div[1]/div/div[last()]/div/div[1]/div[@aria-label="赞"]'
             like_element = driver.find_elements(by=By.XPATH, value=value)
             for element in like_element[::-1]:
