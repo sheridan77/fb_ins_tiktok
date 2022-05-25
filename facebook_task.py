@@ -100,72 +100,77 @@ class FacebookTask:
             current_windows = driver.window_handles
             driver.switch_to.window(current_windows[-1])
             # 添加推荐好友
-            driver.get('https://www.facebook.com/friends/suggestions')
-            value = '//div[@role="navigation"]/div/div[2]/div/div[2]/div/div/div/a/div/div[2]/div/div[2]/div/div/div/div[@role="button"]'
-            try:
-                driver.find_elements(by=By.XPATH, value=value)[0].click()
-
-                value = '//div[@role="navigation"]/div/div[2]/div/div/div/div/div/a/div/div[2]/div/div[2]/div/div[1]/div[1]/div[@role="button"]'
-                find_friend_element = driver.find_elements(by=By.XPATH, value=value)
-                for element in find_friend_element[1:6]:
-                    time.sleep(1.5)
-                    element.click()
-            except Exception as e:
-                pass
-            time.sleep(2)
-            # 同意好友请求 5个
-            driver.get('https://www.facebook.com/friends/requests')
-            value = '//div[@role="navigation"]/div/div[2]/div/div[2]/div/div/div/div/a/div/div[2]/div/div[2]/div/div/div[1]/div[@role="button"]'
-            confirm_friends_request_element = driver.find_elements(by=By.XPATH, value=value)
-            for element in confirm_friends_request_element[:5]:
-                time.sleep(1.5)
-                element.click()
-            time.sleep(3)
-            # 邀请好友为指定的公共主页点赞 5位好友
-            if str(one_task.pub_page_link) != 'nan':
-                driver.get(one_task.pub_page_link)
-                try:
-                    value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[3]/div/div/div/div[2]/div/div/div[3]/div'
-                    WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-                    value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div/div[1]/div/div[4]'
-                    WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-                except Exception as e:
-                    value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[2]/div/div/div[3]/div/div/div/div[2]/div/div/div[2]/div'
-                    WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-                    value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div/div[1]/div[3]/div[4]'
-                    WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-                time.sleep(5)
-                value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div[5]/div/div[1]/div[@data-visualcompletion="ignore-dynamic"]/div[@role="checkbox"]'
-                check_box_element = driver.find_elements(by=By.XPATH, value=value)
-                for element in check_box_element[:5]:
-                    time.sleep(1.5)
-                    element.click()
-
-                value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[4]/div[2]/div[2]/div'
-                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-                time.sleep(3)
-            # 指定公共主页分享
-                driver.get(one_task.pub_page_link)
-                for _ in range(3):
-                    time.sleep(1)
-                    driver.execute_script(f'window.scrollBy(0, {random.randint(200, 500)})')
-                time.sleep(3)
-                value = '//div[@role="main"]/div[@class="k4urcfbm"]/div/div/div/div/div[@role="article"]/div/div/div/div/div/div[2]/div/div[last()]/div/div/div/div/div/div/div[last()]/div[@role="button"]'
-                share_element = driver.find_elements(by=By.XPATH, value=value)
-                # print(share_element)
-                for element in share_element[:3]:
-                    try:
-                        element.click()
-                        share_value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div[1]/div/div[1]/div'
-                        WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, share_value))).click()
-                        time.sleep(2)
-                    except Exception as e:
-                        continue
+            # driver.get('https://www.facebook.com/friends/suggestions')
+            # value = '//div[@role="navigation"]/div/div[2]/div/div[2]/div/div/div/a/div/div[2]/div/div[2]/div/div/div/div[@role="button"]'
+            # try:
+            #     driver.find_elements(by=By.XPATH, value=value)[0].click()
+            #
+            #     value = '//div[@role="navigation"]/div/div[2]/div/div/div/div/div/a/div/div[2]/div/div[2]/div/div[1]/div[1]/div[@role="button"]'
+            #     find_friend_element = driver.find_elements(by=By.XPATH, value=value)
+            #     for element in find_friend_element[1:6]:
+            #         time.sleep(1.5)
+            #         element.click()
+            # except Exception as e:
+            #     pass
+            # time.sleep(2)
+            # # 同意好友请求 5个
+            # driver.get('https://www.facebook.com/friends/requests')
+            # value = '//div[@role="navigation"]/div/div[2]/div/div[2]/div/div/div/div/a/div/div[2]/div/div[2]/div/div/div[1]/div[@role="button"]'
+            # confirm_friends_request_element = driver.find_elements(by=By.XPATH, value=value)
+            # for element in confirm_friends_request_element[:5]:
+            #     time.sleep(1.5)
+            #     element.click()
+            # time.sleep(3)
+            # # 邀请好友为指定的公共主页点赞 5位好友
+            # if str(one_task.pub_page_link) != 'nan':
+            #     driver.get(one_task.pub_page_link)
+            #     try:
+            #         value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[3]/div/div/div/div[2]/div/div/div[3]/div'
+            #         WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+            #         value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div/div[1]/div/div[4]'
+            #         WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+            #     except Exception as e:
+            #         value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[2]/div/div/div[3]/div/div/div/div[2]/div/div/div[2]/div'
+            #         WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+            #         value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div/div[1]/div[3]/div[4]'
+            #         WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+            #     time.sleep(5)
+            #     value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div[5]/div/div[1]/div[@data-visualcompletion="ignore-dynamic"]/div[@role="checkbox"]'
+            #     check_box_element = driver.find_elements(by=By.XPATH, value=value)
+            #     for element in check_box_element[:5]:
+            #         time.sleep(1.5)
+            #         element.click()
+            #
+            #     value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[4]/div[2]/div[2]/div'
+            #     WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+            #     time.sleep(3)
+            # # 指定公共主页分享
+            #     driver.get(one_task.pub_page_link)
+            #     for _ in range(3):
+            #         time.sleep(1)
+            #         driver.execute_script(f'window.scrollBy(0, {random.randint(200, 500)})')
+            #     time.sleep(3)
+            #     value = '//div[@role="main"]/div[@class="k4urcfbm"]/div/div/div/div/div[@role="article"]/div/div/div/div/div/div[2]/div/div[last()]/div/div/div/div/div/div/div[last()]/div[@role="button"]'
+            #     share_element = driver.find_elements(by=By.XPATH, value=value)
+            #     # print(share_element)
+            #     for element in share_element[:3]:
+            #         try:
+            #             element.click()
+            #             share_value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div[1]/div/div[1]/div'
+            #             WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, share_value))).click()
+            #             time.sleep(2)
+            #         except Exception as e:
+            #             continue
             if str(one_task.group_link) != 'nan':
                 # 加入指定公共小组
                 driver.get(one_task.group_link)
                 value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[1]/div/div[1]/div[1]/div[2]/div/div[4]/div/div/div/div/div[1]/div'
                 WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                try:
+                    value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div[2]/div'
+                    WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                    value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[4]/div/div/div/div[2]/div[1]'
+                    WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
                 time.sleep(3)
             # 发表帖子
             if str(one_task.media_path) != 'nan':
