@@ -160,7 +160,7 @@ class FacebookTask:
             #             WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, share_value))).click()
             #             time.sleep(2)
             #         except Exception as e:
-            #             continue
+            #             pass
             if str(one_task.group_link) != 'nan':
                 # 加入指定公共小组
                 driver.get(one_task.group_link)
@@ -171,6 +171,8 @@ class FacebookTask:
                     WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
                     value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[4]/div/div/div/div[2]/div[1]'
                     WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                except Exception as e:
+                    pass
                 time.sleep(3)
             # 发表帖子
             if str(one_task.media_path) != 'nan':
