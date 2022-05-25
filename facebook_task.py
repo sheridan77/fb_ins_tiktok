@@ -161,19 +161,19 @@ class FacebookTask:
             #             time.sleep(2)
             #         except Exception as e:
             #             pass
-            if str(one_task.group_link) != 'nan':
-                # 加入指定公共小组
-                driver.get(one_task.group_link)
-                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[1]/div/div[1]/div[1]/div[2]/div/div[4]/div/div/div/div/div[1]/div'
-                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-                try:
-                    value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div[2]/div'
-                    WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
-                    value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[4]/div/div/div/div[2]/div[1]'
-                    WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
-                except Exception as e:
-                    pass
-                time.sleep(3)
+            # if str(one_task.group_link) != 'nan':
+            #     # 加入指定公共小组
+            #     driver.get(one_task.group_link)
+            #     value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[1]/div/div[1]/div[1]/div[2]/div/div[4]/div/div/div/div/div[1]/div'
+            #     WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+            #     try:
+            #         value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div[2]/div'
+            #         WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
+            #         value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[4]/div/div/div/div[2]/div[1]'
+            #         WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
+            #     except Exception as e:
+            #         pass
+            #     time.sleep(3)
             # 发表帖子
             if str(one_task.media_path) != 'nan':
                 dir_path = one_task.media_path
@@ -202,29 +202,31 @@ class FacebookTask:
                 send_keys(one_task.media_path)
                 send_keys("{VK_RETURN}")
                 window['文件名(&N):Edit'].type_keys(' '.join(picture_list))
-                window["打开(&O)"].click()
+                time.sleep(1)
+                # window["打开(&O)"].click()
+                send_keys("{VK_RETURN}")
                 time.sleep(5)
                 value = '//div[@aria-label="发帖"]'
 
                 WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
                 time.sleep(10)
             # 点赞帖子
-            driver.get('https://www.facebook.com')
-            for _ in range(10):
-                time.sleep(1)
-                driver.execute_script(f'window.scrollBy(0, {random.randint(500, 1000)})')
-            time.sleep(3)
-            value = '//div[@role="feed"]/div/div/div/div/div/div/div/div/div/div/div/div[last()]/div/div[last()]/div/div/div[1]/div/div[last()]/div/div[1]/div[@aria-label="赞"]'
-            like_element = driver.find_elements(by=By.XPATH, value=value)
-            for element in like_element[::-1]:
-                time.sleep(1.5)
-                element.click()
-            headers = {'id': one_task.id}  # TODO 比特浏览器
-            requests.post(close_page, json=headers)
-            task_num += 1
-            print(f'正在进行第{task_num}个任务中，共计{len(self.task)}个任务')
-            # time.sleep(1)
-            os.system('cls')
+            # driver.get('https://www.facebook.com')
+            # for _ in range(10):
+            #     time.sleep(1)
+            #     driver.execute_script(f'window.scrollBy(0, {random.randint(500, 1000)})')
+            # time.sleep(3)
+            # value = '//div[@role="feed"]/div/div/div/div/div/div/div/div/div/div/div/div[last()]/div/div[last()]/div/div/div[1]/div/div[last()]/div/div[1]/div[@aria-label="赞"]'
+            # like_element = driver.find_elements(by=By.XPATH, value=value)
+            # for element in like_element[::-1]:
+            #     time.sleep(1.5)
+            #     element.click()
+            # headers = {'id': one_task.id}  # TODO 比特浏览器
+            # requests.post(close_page, json=headers)
+            # task_num += 1
+            # print(f'正在进行第{task_num}个任务中，共计{len(self.task)}个任务')
+            # # time.sleep(1)
+            # os.system('cls')
 
 
 if __name__ == '__main__':
