@@ -154,10 +154,13 @@ class FacebookTask:
                 share_element = driver.find_elements(by=By.XPATH, value=value)
                 # print(share_element)
                 for element in share_element[:3]:
-                    element.click()
-                    share_value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div[1]/div/div[1]/div'
-                    WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, share_value))).click()
-                    time.sleep(2)
+                    try:
+                        element.click()
+                        share_value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div[1]/div/div[1]/div'
+                        WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, share_value))).click()
+                        time.sleep(2)
+                    except Exception as e:
+                        continue
             if str(one_task.group_link) != 'nan':
                 # 加入指定公共小组
                 driver.get(one_task.group_link)
