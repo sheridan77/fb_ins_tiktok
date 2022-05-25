@@ -18,6 +18,7 @@ import pandas
 import pywinauto
 from pywinauto.keyboard import send_keys
 from tqdm import tqdm
+import selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -123,10 +124,16 @@ class FacebookTask:
             # 邀请好友为指定的公共主页点赞 5位好友
             if str(one_task.pub_page_link) != 'nan':
                 driver.get(one_task.pub_page_link)
-                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[3]/div/div/div/div[2]/div/div/div[3]/div'
-                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div/div[1]/div/div[4]'
-                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                try:
+                    value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[3]/div/div/div/div[2]/div/div/div[3]/div'
+                    WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                    value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div/div[1]/div/div[4]'
+                    WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                except Exception as e:
+                    value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[2]/div/div/div[3]/div/div/div/div[2]/div/div/div[2]/div'
+                    WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                    value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div/div[1]/div[3]/div[4]'
+                    WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
                 time.sleep(5)
                 value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div[5]/div/div[1]/div[@data-visualcompletion="ignore-dynamic"]/div[@role="checkbox"]'
                 check_box_element = driver.find_elements(by=By.XPATH, value=value)
@@ -139,7 +146,7 @@ class FacebookTask:
                 time.sleep(3)
             # 指定公共主页分享
                 driver.get(one_task.pub_page_link)
-                for i in range(3):
+                for _ in range(3):
                     time.sleep(1)
                     driver.execute_script(f'window.scrollBy(0, {random.randint(200, 500)})')
                 time.sleep(3)
@@ -154,7 +161,7 @@ class FacebookTask:
             if str(one_task.group_link) != 'nan':
                 # 加入指定公共小组
                 driver.get(one_task.group_link)
-                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[1]/div/div[1]/div[1]/div[2]/div/div[4]/div/div/div/div/div[1]/div/div/div'
+                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[1]/div/div[1]/div[1]/div[2]/div/div[4]/div/div/div/div/div[1]/div'
                 WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
                 time.sleep(3)
             # 发表帖子
@@ -193,7 +200,7 @@ class FacebookTask:
                 time.sleep(10)
             # 点赞帖子
             driver.get('https://www.facebook.com')
-            for i in range(10):
+            for _ in range(10):
                 time.sleep(1)
                 driver.execute_script(f'window.scrollBy(0, {random.randint(500, 1000)})')
             time.sleep(3)
