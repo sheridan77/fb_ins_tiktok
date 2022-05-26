@@ -26,6 +26,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.select import Select
+from selenium.webdriver.chrome.service import Service
 
 from settings import *
 
@@ -39,10 +40,10 @@ class StartChrome:
         headers = {'id': self.profile_sid}
         host_port = requests.post(open_page_url, json=headers).json()
         host_port = host_port.get('data').get('http')
-        chrome_driver = "chromedriver.exe"
+        chrome_driver = Service("chromedriver.exe")
         chrome_options = Options()
         chrome_options.add_experimental_option("debuggerAddress", host_port)
-        driver = webdriver.Chrome(chrome_driver, options=chrome_options)
+        driver = webdriver.Chrome(service=chrome_driver, options=chrome_options)
 
         return driver
 
