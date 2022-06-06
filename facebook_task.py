@@ -185,19 +185,19 @@ class FacebookTask:
                     except Exception as e:
                         pass
                 profile_id = one_task.id
-            # if str(one_task.group_link) != 'nan':
-            #     # 加入指定公共小组
-            #     driver.get(one_task.group_link)
-            #     value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[1]/div/div[1]/div[1]/div[2]/div/div[4]/div/div/div/div/div[1]/div'
-            #     WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
-            #     try:
-            #         value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div[2]/div'
-            #         WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
-            #         value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[4]/div/div/div/div[2]/div[1]'
-            #         WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
-            #     except Exception as e:
-            #         pass
-            #     time.sleep(3)
+            if str(one_task.group_link) != 'nan':
+                # 加入指定公共小组
+                driver.get(one_task.group_link)
+                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[1]/div/div[1]/div[1]/div[2]/div/div[4]/div/div/div/div/div[1]/div'
+                WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                try:
+                    value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div[2]/div'
+                    WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                    value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[4]/div/div/div/div[2]/div[1]'
+                    WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                except Exception as e:
+                    pass
+                time.sleep(3)
             # 发表帖子
             if str(one_task.media_path) != 'nan':
                 dir_path = one_task.media_path
