@@ -280,6 +280,7 @@ class FacebookTask:
                 element = driver.find_elements(by=By.XPATH, value='//div[@aria-label="发帖"]')[-1]
                 element.click()
                 time.sleep(15)
+
                 for _ in range(3):
                     driver.get('https://www.facebook.com/groups/feed/')
                     elements = driver.find_elements(by=By.XPATH, value='//div[@role="navigation"]/div/div[3]/div/div/a')
