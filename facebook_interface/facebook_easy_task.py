@@ -33,15 +33,21 @@ from facebook_interface.settings import *
 class TaskModel:
     def __init__(
             self,
-            browser_id,
-            pub_page_link,
-            group_link,
-            media_path
+            task_type: str,
+            _id: 'int|str' = None,
+            pub_page_link: str = None,
+            group_link: str = None,
+            media_path: str = None,
+            status: dict = None,
+            nickname: str = None
     ):
-        self.id = browser_id
+        self.id_ = _id
+        self.task_type = task_type
         self.pub_page_link = pub_page_link
         self.group_link = group_link
         self.media_path = media_path
+        self.status = status
+        self.nickname = nickname
 
 
 class StartChrome:
@@ -50,14 +56,19 @@ class StartChrome:
 
     def start_chrome(self):
         headers = {'id': self.profile_sid}
-        host_port = requests.post(open_page_url, json=headers).json()
-        host_port = host_port.get('data').get('http')
-        chrome_driver = Service("chromedriver.exe")
-        chrome_options = Options()
-        chrome_options.add_experimental_option("debuggerAddress", host_port)
-        driver = webdriver.Chrome(service=chrome_driver, options=chrome_options)
+        try:
+            host_port = requests.post(open_page_url, json=headers).json()
+            host_port = host_port.get('data').get('http')
+            chrome_driver = Service("chromedriver.exe")
+            chrome_options = Options()
+            chrome_options.add_experimental_option("debuggerAddress", host_port)
+            driver = webdriver.Chrome(service=chrome_driver, options=chrome_options)
+            current_windows = driver.window_handles
+            driver.switch_to.window(current_windows[-1])
 
-        return driver
+            return driver
+        except requests.exceptions.ConnectionError:
+            return 'error'
 
 
 class FaceBookTask(QMainWindow, Ui_Form):
@@ -100,6 +111,73 @@ class FaceBookTask(QMainWindow, Ui_Form):
     def show_interface(self):
         self.pushButton_open_excel.clicked.connect(self.choose_excel)
         self.pushButton_del_task.clicked.connect(self.del_task)
+        self.pushButton_refresh.clicked.connect(self.set_combobox_text)
+        self.pushButton_add_friends.clicked.connect(self.add_friend)
+
+    def add_friend(self):
+        id_ = self.comboBox.currentText().split('--')[0].strip()
+        sql = 'select profile_id, status from task where id = ?'
+        cursor.execute(sql, (id_,))
+        try:
+            self.disable_button()
+            profile_id, status = cursor.fetchone()
+            task_model = TaskModel(task_type='add_friend', status=json.loads(status), _id=id_)
+            backend = StartTask(profile_id=profile_id, task_model=task_model, parent=self)
+            backend.update_data.connect(self.handle_task)
+            backend.dict_data.connect(self.update_status)
+            backend.start()
+        except TypeError:
+            pass
+
+    def update_status(self, data):
+        id_ = self.comboBox.currentText().split('--')[0].strip()
+        sql = 'update task set `status` = ? where id = ?'
+        cursor.execute(sql, (
+            json.dumps(data, ensure_ascii=False),
+            id_
+        ))
+        connect.commit()
+
+    def handle_task(self, data):
+        if data == 'start':
+            self.disable_button()
+        elif data == 'end':
+            self.able_button()
+        elif data == 'browser_error':
+            QMessageBox.warning(
+                self,
+                '浏览器唤起错误',
+                '请检查settings.py中的浏览器端口是否正确'
+            )
+            self.able_button()
+        elif data == 'refresh':
+            self.set_combobox_text()
+        else:
+            self.textEdit.append(data)
+
+    def disable_button(self):
+        self.comboBox.setEnabled(False)
+        self.pushButton_add_friends.setEnabled(False)
+        self.pushButton_confirm_friend_request.setEnabled(False)
+        self.pushButton_invite_like.setEnabled(False)
+        self.pushButton_share_page.setEnabled(False)
+        self.pushButton_add_group.setEnabled(False)
+        self.pushButton_like.setEnabled(False)
+        self.pushButton_public_own.setEnabled(False)
+        self.pushButton_public_all.setEnabled(False)
+        self.pushButton_public_group.setEnabled(False)
+
+    def able_button(self):
+        self.comboBox.setEnabled(True)
+        self.pushButton_add_friends.setEnabled(True)
+        self.pushButton_confirm_friend_request.setEnabled(True)
+        self.pushButton_invite_like.setEnabled(True)
+        self.pushButton_share_page.setEnabled(True)
+        self.pushButton_add_group.setEnabled(True)
+        self.pushButton_like.setEnabled(True)
+        self.pushButton_public_own.setEnabled(True)
+        self.pushButton_public_all.setEnabled(True)
+        self.pushButton_public_group.setEnabled(True)
 
     def del_task(self):
         _id = self.comboBox.currentText().split('--')[0].strip()
@@ -133,7 +211,7 @@ class FaceBookTask(QMainWindow, Ui_Form):
                 }, ensure_ascii=False)
                 cursor.execute(
                     'insert into task (profile_id, like_link, group_link, media_path, nickname, status) '
-                    'values (?, ?, ?, ?, ?, ?)',  (_id, pub, group, media, nickname, status)
+                    'values (?, ?, ?, ?, ?, ?)', (_id, pub, group, media, nickname, status)
                 )
                 connect.commit()
             self.label_show_file_path.setText('已入库--' + file)
@@ -149,15 +227,16 @@ class FaceBookTask(QMainWindow, Ui_Form):
 
 class StartTask(QThread):
     update_data = pyqtSignal(str)
+    dict_data = pyqtSignal(dict)
 
-    def __init__(self, profile_id, task_model, parent=None):
+    def __init__(self, profile_id, task_model: TaskModel, parent=None):
         super(StartTask, self).__init__(parent)
         self.task_model = task_model
         self.profile_id = profile_id
         self.driver = StartChrome(self.profile_id).start_chrome()
 
     def confirm_friends_requests(self):
-        info = '正在进行确认好友请求任务.....\n'
+        info = '正在进行确认好友请求任务.....'
         self.update_data.emit(info)
         self.driver.get('https://www.facebook.com/friends/suggestions')
         value = '//div[@role="navigation"]/div/div[2]/div/div[2]/div/div/div/a/div/div[2]/div/div[2]/div/div/div/div[@role="button"]'
@@ -171,15 +250,27 @@ class StartTask(QThread):
             for element in find_friend_element[1:6]:
                 time.sleep(1.5)
                 element.click()
-                info += f'成功同意--第{_}个\n'
+                info = f'成功同意--第{_}个'
                 self.update_data.emit(info)
+                _ += 1
         except Exception as e:
-            info += '任务中断。。。\n'
+            info += '任务中断。。。'
 
             pass
         time.sleep(2)
-        headers = {'id': self.task_model.id}
+        headers = {'id': self.profile_id}
         requests.post(close_page, json=headers)
+
+    def run(self):
+        if self.driver == 'error':
+            self.update_data.emit('browser_error')
+        else:
+            if self.task_model.task_type == 'add_friend':
+                self.confirm_friends_requests()
+                self.task_model.status['添加推荐好友'] += 1
+                self.dict_data.emit(self.task_model.status)
+                self.update_data.emit('refresh')
+                self.update_data.emit('end')
 
 
 if __name__ == '__main__':
