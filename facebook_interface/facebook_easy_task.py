@@ -11,7 +11,6 @@ import requests
 import pandas
 import pywinauto
 from pywinauto.keyboard import send_keys
-from tqdm import tqdm
 import selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -28,6 +27,9 @@ from PyQt5.QtWidgets import *
 from PyQt5 import QtGui, QtWidgets, QtCore
 from facebook_interface.interface import Ui_Form
 from facebook_interface.settings import *
+
+connect = sqlite3.connect('facebook_task.db')
+cursor = connect.cursor()
 
 
 class TaskModel:
@@ -68,7 +70,9 @@ class StartChrome:
 
             return driver
         except requests.exceptions.ConnectionError:
-            return 'error'
+            return 'error_1'
+        except AttributeError:
+            return 'error_2'
 
 
 class FaceBookTask(QMainWindow, Ui_Form):
@@ -79,6 +83,7 @@ class FaceBookTask(QMainWindow, Ui_Form):
         self.set_combobox_text()
 
     def set_combobox_text(self):
+        self.label_show_task_status.clear()
         sql = 'select id, profile_id, nickname from task where info = 1'
         cursor.execute(sql)
         res = cursor.fetchall()
@@ -127,6 +132,7 @@ class FaceBookTask(QMainWindow, Ui_Form):
             backend.dict_data.connect(self.update_status)
             backend.start()
         except TypeError:
+            self.able_button()
             pass
 
     def update_status(self, data):
@@ -148,6 +154,13 @@ class FaceBookTask(QMainWindow, Ui_Form):
                 self,
                 '浏览器唤起错误',
                 '请检查settings.py中的浏览器端口是否正确'
+            )
+            self.able_button()
+        elif data == 'profile_error':
+            QMessageBox.warning(
+                self,
+                '浏览器配置文件错误',
+                '请检查浏览器配置文件是否正确'
             )
             self.able_button()
         elif data == 'refresh':
@@ -262,8 +275,10 @@ class StartTask(QThread):
         requests.post(close_page, json=headers)
 
     def run(self):
-        if self.driver == 'error':
+        if self.driver == 'error_1':
             self.update_data.emit('browser_error')
+        elif self.driver == 'error_2':
+            self.update_data.emit('profile_error')
         else:
             if self.task_model.task_type == 'add_friend':
                 self.confirm_friends_requests()
@@ -273,10 +288,4 @@ class StartTask(QThread):
                 self.update_data.emit('end')
 
 
-if __name__ == '__main__':
-    connect = sqlite3.connect('facebook_task.db')
-    cursor = connect.cursor()
-    app = QApplication(sys.argv)
-    main = FaceBookTask()
-    main.show()
-    sys.exit(app.exec_())
+
