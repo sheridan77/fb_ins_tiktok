@@ -1,5 +1,5 @@
 import sys
-from facebook_interface.facebook_easy_task import FaceBookTask
+from facebook_easy_task import FaceBookTask
 from PyQt5.QtWidgets import *
 
 
