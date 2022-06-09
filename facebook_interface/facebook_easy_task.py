@@ -25,8 +25,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5 import QtGui, QtWidgets, QtCore
-from facebook_interface.interface import Ui_Form
-from facebook_interface.settings import *
+from interface import Ui_Form
+from settings import *
 
 connect = sqlite3.connect('facebook_task.db')
 cursor = connect.cursor()
