@@ -80,7 +80,7 @@ class FacebookTask:
         data_list = df.values
         task_list = list()
         for data in data_list:
-            _id, pub, group, media = data
+            _id, pub, group, media, nickname = data
             task_model = TaskModel(
                 browser_id=_id,
                 pub_page_link=pub,

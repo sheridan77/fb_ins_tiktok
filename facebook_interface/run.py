@@ -1,13 +1,8 @@
-import sys
-from facebook_easy_task import FaceBookTask
-from PyQt5.QtWidgets import *
+from facebook_easy_task import run
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    main = FaceBookTask()
-    main.show()
-    sys.exit(app.exec_())
+    run()
 
 
 

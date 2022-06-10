@@ -288,4 +288,8 @@ class StartTask(QThread):
                 self.update_data.emit('end')
 
 
-
+def run():
+    app = QApplication(sys.argv)
+    main = FaceBookTask()
+    main.show()
+    sys.exit(app.exec())
