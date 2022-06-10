@@ -9,8 +9,6 @@ from typing import List
 import time
 import requests
 import pandas
-import pywinauto
-from pywinauto.keyboard import send_keys
 import selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -26,8 +24,10 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5 import QtGui, QtWidgets, QtCore
 from interface import Ui_Form
+from func import test
 from settings import *
 
+sys.coinit_flags = 2
 connect = sqlite3.connect('facebook_task.db')
 cursor = connect.cursor()
 
@@ -206,9 +206,16 @@ class FaceBookTask(QMainWindow, Ui_Form):
             'C:/',
             'Excel Files (*.xls *.xlsx)'
         )
-
-        df = pandas.read_excel(file)
-        data_list = df.values
+        try:
+            df = pandas.read_excel(file)
+            data_list = df.values
+        except FileNotFoundError:
+            data_list = list()
+            QMessageBox.warning(
+                self,
+                '文件选择错误',
+                '请正确选择文件'
+            )
         try:
             for data in data_list:
                 _id, pub, group, media, nickname = data
@@ -292,4 +299,4 @@ def run():
     app = QApplication(sys.argv)
     main = FaceBookTask()
     main.show()
-    sys.exit(app.exec())
+    sys.exit(app.exec_())
