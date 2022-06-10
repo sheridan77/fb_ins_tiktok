@@ -1,4 +1,8 @@
+"""
+基于pyqt5的界面化操作facebook相关任务的后台处理程序
+"""
 import json
+import os
 import sys
 import pandas
 import sqlite3
@@ -24,7 +28,6 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5 import QtGui, QtWidgets, QtCore
 from interface import Ui_Form
-from func import test
 from settings import *
 
 sys.coinit_flags = 2
@@ -36,11 +39,11 @@ class TaskModel:
     def __init__(
             self,
             task_type: str,
-            _id: 'int|str' = None,
+            _id: 'int|str',
+            status: dict,
             pub_page_link: str = None,
             group_link: str = None,
             media_path: str = None,
-            status: dict = None,
             nickname: str = None
     ):
         self.id_ = _id
@@ -81,6 +84,7 @@ class FaceBookTask(QMainWindow, Ui_Form):
         self.setupUi(self)
         self.show_interface()
         self.set_combobox_text()
+        self.choose_account_list = list()  # 多账号任务账号列表
 
     def set_combobox_text(self):
         self.label_show_task_status.clear()
@@ -114,41 +118,114 @@ class FaceBookTask(QMainWindow, Ui_Form):
             pass
 
     def show_interface(self):
+        self.pushButton_ok.clicked.connect(self.confirm_account)
+        self.pushButton_get_account_list.clicked.connect(self.get_account_list)
         self.pushButton_open_excel.clicked.connect(self.choose_excel)
         self.pushButton_del_task.clicked.connect(self.del_task)
         self.pushButton_refresh.clicked.connect(self.set_combobox_text)
-        self.pushButton_add_friends.clicked.connect(self.add_friend)
+        self.pushButton_add_friends.clicked.connect(lambda: self.parse_task('add_friend'))
+        self.pushButton_confirm_friend_request.clicked.connect(lambda: self.parse_task('confirm_friend'))
+        self.pushButton_invite_like.clicked.connect(lambda: self.parse_task('invite_like'))
+        self.pushButton_share_page.clicked.connect(lambda: self.parse_task('share_page'))
+        self.pushButton_add_group.clicked.connect(lambda: self.parse_task('add_group'))
+        self.pushButton_like.clicked.connect(lambda: self.parse_task('like'))
+        self.pushButton_public_own.clicked.connect(lambda: self.parse_task('publish_own'))
+        self.pushButton_public_all.clicked.connect(lambda: self.parse_task('publish_public_page'))
 
-    def add_friend(self):
+    def confirm_account(self):
+        self.set_combobox_text()
+        self.choose_account_list = list()
+        count = self.listWidget.count()
+        checkbox_list = [self.listWidget.itemWidget(self.listWidget.item(i)) for i in range(count)]
+        for checkbox in checkbox_list:
+            if checkbox.isChecked():
+                self.choose_account_list.append(checkbox.text())
+
+        QMessageBox.information(
+            self,
+            '提示',
+            '确认成功'
+        )
+
+        # print(self.choose_account_list)
+
+    def get_account_list(self):
+        self.listWidget.clear()
+        sql = 'select id, profile_id, nickname from task where info = 1'
+        cursor.execute(sql)
+        result = cursor.fetchall()
+        # print(result)
+        for r in result:
+            task_id, profile_id, nickname = r
+            box = QCheckBox(f'{task_id}--{nickname}--{profile_id}')
+            item = QListWidgetItem()
+            self.listWidget.addItem(item)
+            self.listWidget.setItemWidget(item, box)
+
+    def start_task(self, status, id_, profile_id, task_type, like_link, group_link, media_path):
+        task_model = TaskModel(
+            task_type=task_type,
+            status=json.loads(status),
+            _id=id_,
+            pub_page_link=like_link,
+            group_link=group_link,
+            media_path=media_path
+        )
+        backend = StartTask(profile_id=profile_id, task_model=task_model, parent=self)
+        backend.update_data.connect(self.handle_task)
+        backend.model_data.connect(self.update_status)
+        backend.start()
+
+    def parse_task(self, task_type):
+        self.disable_button()
         id_ = self.comboBox.currentText().split('--')[0].strip()
-        sql = 'select profile_id, status from task where id = ?'
-        cursor.execute(sql, (id_,))
-        try:
-            self.disable_button()
-            profile_id, status = cursor.fetchone()
-            task_model = TaskModel(task_type='add_friend', status=json.loads(status), _id=id_)
-            backend = StartTask(profile_id=profile_id, task_model=task_model, parent=self)
-            backend.update_data.connect(self.handle_task)
-            backend.dict_data.connect(self.update_status)
-            backend.start()
-        except TypeError:
+        if id_ == '选择一个任务' and self.choose_account_list:
+            for data in self.choose_account_list:
+                id_, nickname, profile_id = data.split('--')
+                sql = 'select status, like_link, group_link, media_path from task where id = ?'
+                cursor.execute(sql, (id_,))
+                status, like_link, group_link, media_path = cursor.fetchone()
+                self.start_task(status, id_, profile_id, task_type, like_link, group_link, media_path)
+            self.choose_account_list = list()
+        elif id_ == '选择一个任务' and not self.choose_account_list:
+            QMessageBox.warning(
+                self,
+                '注意',
+                '批量任务请确认，单个任务请选择!!!'
+            )
             self.able_button()
-            pass
+        else:
+            sql = 'select profile_id, status, like_link, group_link, media_path from task where id = ?'
+            cursor.execute(sql, (id_,))
+            try:
+                self.disable_button()
+                profile_id, status, like_link, group_link, media_path = cursor.fetchone()
+                self.start_task(status, id_, profile_id, task_type, like_link, group_link, media_path)
+            except TypeError:
+                self.able_button()
 
-    def update_status(self, data):
-        id_ = self.comboBox.currentText().split('--')[0].strip()
+    def update_status(self, data: TaskModel):
+        status = data.status
+        id_ = data.id_
         sql = 'update task set `status` = ? where id = ?'
         cursor.execute(sql, (
-            json.dumps(data, ensure_ascii=False),
+            json.dumps(status, ensure_ascii=False),
             id_
         ))
         connect.commit()
+        self.textEdit.append('完成了一次任务, 已更新status')
 
     def handle_task(self, data):
         if data == 'start':
             self.disable_button()
         elif data == 'end':
             self.able_button()
+        elif data == '权限不足':
+            QMessageBox.warning(
+                self,
+                "权限不足",
+                '没有足够的权限\n请关闭本软件并使用管理员权限运行!!'
+            )
         elif data == 'browser_error':
             QMessageBox.warning(
                 self,
@@ -224,6 +301,7 @@ class FaceBookTask(QMainWindow, Ui_Form):
                     "确认好友请求": 0,
                     "邀请好友点赞": 0,
                     "分享公共主页": 0,
+                    "点赞帖子": 0,
                     "加入指定公共小组": 0,
                     "个人主页发表帖子": 0,
                     "公共主页发表帖子": 0,
@@ -247,18 +325,249 @@ class FaceBookTask(QMainWindow, Ui_Form):
 
 class StartTask(QThread):
     update_data = pyqtSignal(str)
-    dict_data = pyqtSignal(dict)
+    model_data = pyqtSignal(TaskModel)
 
     def __init__(self, profile_id, task_model: TaskModel, parent=None):
         super(StartTask, self).__init__(parent)
         self.task_model = task_model
         self.profile_id = profile_id
         self.driver = StartChrome(self.profile_id).start_chrome()
+        self.task_dict = {
+            'add_friend': 'self.add_friend()',
+            'confirm_friend': 'self.confirm_friend()',
+            'invite_like': 'self.invite_like()',
+            'share_page': 'self.share_page()',
+            'add_group': 'self.add_group()',
+            'like': 'self.like()',
+            'publish_own': 'self.publish_own()',
+            'publish_public_page': 'self.publish_public_page()'
+        }
 
-    def confirm_friends_requests(self):
+    def publish_public_page(self):
+        self.update_data.emit('开始在公共主页发表文章')
+        import pywinauto
+        from pywinauto.keyboard import send_keys
+        if self.task_model.media_path:
+            dir_path = self.task_model.media_path
+            try:
+                file_list = os.listdir(dir_path)
+            except FileNotFoundError:
+                self.update_data.emit('文件路径不存在')
+                file_list = None
+
+            if file_list:
+                # print(file_list)
+                picture_list = [f'"{i}"' for i in file_list if 'txt' not in i]
+                # print(picture_list)
+                text_path = self.task_model.media_path + r'\txt.txt'
+                # print(text_path)
+                with open(text_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+                try:
+                    self.driver.get('https://www.facebook.com/pages/?category=your_pages&ref=bookmarks')
+                    value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[1]/div/div[2]/div[1]/div[2]/div[2]/div/a'
+                    WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                    WebDriverWait(self.driver, 10).until(
+                        ec.presence_of_element_located((By.XPATH, '//div[@aria-label="发帖"]'))).click()
+                    value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div[2]/div/div[2]/div[1]/div/div[1]/div[1]/div/div/div/div/div/div/div[2]/div'
+                    WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(
+                        content)
+                    WebDriverWait(self.driver, 10).until(
+                        ec.presence_of_element_located((By.XPATH, '//div[@aria-label="照片/视频"]'))).click()
+                    app = pywinauto.Desktop()
+                    window = app['打开']
+                    window['Toolbar3'].click()
+                    send_keys(self.task_model.media_path)
+                    send_keys("{VK_RETURN}")
+                    window['文件名(&N):Edit'].type_keys(' '.join(picture_list))
+                    time.sleep(1)
+                    # window["打开(&O)"].click()
+                    send_keys("{VK_RETURN}")
+                    time.sleep(10)
+                    element = self.driver.find_elements(by=By.XPATH, value='//div[@aria-label="发帖"]')[-1]
+                    element.click()
+                except RuntimeError:
+                    self.update_data.emit('权限不足')
+                except Exception as e:
+                    self.update_data.emit('发表失败！！')
+        else:
+            self.update_data.emit('没有找到文件路径')
+
+        self.task_model.status['公共主页发表帖子'] += 1
+        self.close_browser()
+
+    def publish_own(self):
+        import pywinauto
+        from pywinauto.keyboard import send_keys
+        self.update_data.emit(f'开始在个人主页发表帖子')
+        if self.task_model.media_path:
+            dir_path = self.task_model.media_path
+            try:
+                file_list = os.listdir(dir_path)
+            except FileNotFoundError:
+                self.update_data.emit('文件路径不存在!!!')
+                file_list = None
+            if file_list:
+                # print(file_list)
+                picture_list = [f'"{i}"' for i in file_list if 'txt' not in i]
+                # print(picture_list)
+                text_path = self.task_model.media_path + r'\txt.txt'
+                # print(text_path)
+                with open(text_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+                # print(content)
+                try:
+                    self.driver.get('https://www.facebook.com')
+                    value = '//body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div/div[1]/div'
+                    WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                    value = '//body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[1]/div[1]/div/div/div/div/div/div/div[2]/div'
+                    WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(
+                        content)
+                    value = '//body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[3]/div[1]/div[2]/div/div[1]/div/span/div'
+                    WebDriverWait(self.driver, 3).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                    value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[2]/div/div[1]/div/div/div'
+                    WebDriverWait(self.driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                    app = pywinauto.Desktop()
+                    window = app['打开']
+                    window['Toolbar3'].click()
+                    send_keys(self.task_model.media_path)
+                    send_keys("{VK_RETURN}")
+                    window['文件名(&N):Edit'].type_keys(' '.join(picture_list))
+                    time.sleep(1)
+                    # window["打开(&O)"].click()
+                    send_keys("{VK_RETURN}")
+                    time.sleep(5)
+                    value = '//div[@aria-label="发帖"]'
+
+                    WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                    time.sleep(10)
+                except RuntimeError:
+                    self.update_data.emit('权限不足')
+                except Exception as e:
+                    self.update_data.emit('发表失败！')
+        else:
+            self.update_data.emit('没有找到这个文件路径耶')
+
+        self.task_model.status['个人主页发表帖子'] += 1
+        self.close_browser()
+
+    def like(self):
+        self.update_data.emit('开始点赞帖子')
+        self.driver.get('https://www.facebook.com')
+        for _ in range(10):
+            try:
+                time.sleep(1)
+                self.driver.execute_script(f'window.scrollBy(0, {random.randint(500, 1000)})')
+            except Exception as e:
+                time.sleep(3)
+                continue
+        value = '//div[@aria-label="赞"]'
+        like_element = self.driver.find_elements(by=By.XPATH, value=value)
+        _ = 1
+        for element in like_element[::-1]:
+            try:
+                self.update_data.emit(f'点赞第{_}条帖子')
+                time.sleep(1.5)
+                element.click()
+                self.driver.execute_script(f'window.scrollBy(0, -{random.randint(300, 700)})')
+            except selenium.common.exceptions.ElementClickInterceptedException:
+                self.update_data.emit(f'第{_}条帖子点赞失败!')
+                self.driver.execute_script(f'window.scrollBy(0, -{random.randint(500, 1000)})')
+            _ += 1
+
+        self.task_model.status['点赞帖子'] += 1
+        self.close_browser()
+
+    def add_group(self):
+        self.update_data.emit('开始加入指定小组')
+        if self.task_model.group_link:
+            self.driver.get(self.task_model.group_link)
+            value = '//div[@aria-label="加入小组"]'
+            time.sleep(5)
+            try:
+                element = self.driver.find_elements(by=By.XPATH, value=value)[0]
+                element.click()
+            except Exception as e:
+                self.update_data.emit('加入指定小组失败')
+            time.sleep(3)
+            self.task_model.status['加入指定公共小组'] += 1
+            self.close_browser()
+        else:
+            self.update_data.emit('没有找到小组链接')
+
+    def share_page(self):
+        self.update_data.emit('开始分享指定公共主页')
+        if self.task_model.pub_page_link:
+            self.driver.get(self.task_model.pub_page_link)
+            for _ in range(3):
+                time.sleep(1)
+                try:
+                    self.driver.execute_script(f'window.scrollBy(0, {random.randint(1000, 1500)})')
+                except Exception as e:
+                    time.sleep(3)
+                    continue
+            time.sleep(3)
+            value = '//div[@role="main"]/div[@class="k4urcfbm"]/div/div/div/div/div[@role="article"]/div/div/div/div/div/div[2]/div/div[last()]/div/div/div/div/div/div/div[last()]/div[@role="button"]'
+            share_element = self.driver.find_elements(by=By.XPATH, value=value)
+            # print(share_element)
+            for element in share_element[:3]:
+                try:
+                    element.click()
+                    share_value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div[1]/div/div[1]/div'
+                    WebDriverWait(self.driver, 5).until(ec.presence_of_element_located((By.XPATH, share_value))).click()
+                    time.sleep(2)
+                except Exception as e:
+                    pass
+            self.task_model.status['分享公共主页'] += 1
+            self.close_browser()
+        else:
+            self.update_data.emit('没有找到公共主页链接')
+
+    def invite_like(self):
+        self.update_data.emit('开始邀请好友为公共主页点赞')
+        if self.task_model.pub_page_link:
+            self.driver.get(self.task_model.pub_page_link)
+            try:
+                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[3]/div/div/div/div[2]/div/div/div[3]/div'
+                WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div/div[1]/div/div[4]'
+                WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+            except Exception as e:
+                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[2]/div/div/div[3]/div/div/div/div[2]/div/div/div[2]/div'
+                WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div/div/div[1]/div[3]/div[4]'
+                WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+            time.sleep(5)
+            value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div[5]/div/div[1]/div[@data-visualcompletion="ignore-dynamic"]/div[@role="checkbox"]'
+            check_box_element = self.driver.find_elements(by=By.XPATH, value=value)
+
+            for element in check_box_element[:5]:
+                time.sleep(1.5)
+                element.click()
+
+            value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/div[4]/div[2]/div[2]/div'
+            WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+            time.sleep(3)
+            self.task_model.status['邀请好友点赞'] += 1
+            self.close_browser()
+
+        else:
+            self.update_data.emit('没有找到链接。。。')
+
+    def close_browser(self):
+        headers = {'id': self.profile_id}
+        requests.post(close_page, json=headers)
+        self.model_data.emit(self.task_model)
+        self.update_data.emit('refresh')
+        self.update_data.emit('end')
+
+    def add_friend(self):
         info = '正在进行确认好友请求任务.....'
         self.update_data.emit(info)
-        self.driver.get('https://www.facebook.com/friends/suggestions')
+        try:
+            self.driver.get('https://www.facebook.com/friends/suggestions')
+        except selenium.common.exceptions.WebDriverException:
+            self.update_data.emit('网络不通畅')
         value = '//div[@role="navigation"]/div/div[2]/div/div[2]/div/div/div/a/div/div[2]/div/div[2]/div/div/div/div[@role="button"]'
         try:
             time.sleep(2)
@@ -278,8 +587,24 @@ class StartTask(QThread):
 
             pass
         time.sleep(2)
-        headers = {'id': self.profile_id}
-        requests.post(close_page, json=headers)
+        self.task_model.status['添加推荐好友'] += 1
+        self.close_browser()
+
+    def confirm_friend(self):
+        self.update_data.emit('正在进行确认好友请求操作...')
+        self.driver.get('https://www.facebook.com/friends/requests')
+        time.sleep(3)
+        value = '//div[@role="navigation"]/div/div[2]/div/div[2]/div/div/div/div/a/div/div[2]/div/div[2]/div/div/div[1]/div[@role="button"]'
+        confirm_friends_request_element = self.driver.find_elements(by=By.XPATH, value=value)
+        _ = 1
+        for element in confirm_friends_request_element[:5]:
+            time.sleep(1.5)
+            self.update_data.emit(f'完成第{_}个')
+            element.click()
+            _ += 1
+        time.sleep(3)
+        self.task_model.status['确认好友请求'] += 1
+        self.close_browser()
 
     def run(self):
         if self.driver == 'error_1':
@@ -287,12 +612,7 @@ class StartTask(QThread):
         elif self.driver == 'error_2':
             self.update_data.emit('profile_error')
         else:
-            if self.task_model.task_type == 'add_friend':
-                self.confirm_friends_requests()
-                self.task_model.status['添加推荐好友'] += 1
-                self.dict_data.emit(self.task_model.status)
-                self.update_data.emit('refresh')
-                self.update_data.emit('end')
+            eval(self.task_dict.get(self.task_model.task_type))
 
 
 def run():
