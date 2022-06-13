@@ -7,9 +7,7 @@ import sys
 import pandas
 import sqlite3
 
-import requests
 import random
-from typing import List
 import time
 import requests
 import pandas
@@ -28,10 +26,20 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5 import QtGui, QtWidgets, QtCore
 from interface import Ui_Form
-from settings import *
+from configparser import ConfigParser
 
 sys.coinit_flags = 2
-connect = sqlite3.connect('facebook_task.db')
+config = ConfigParser()
+config.read('config.ini', encoding='utf-8')
+base_url = config['api settings']['base_url']
+open_page = config['api settings']['open_page']
+close_browser = config['api settings']['close_browser']
+sqlite_abs_path = config['sqlite']['abs_path']
+open_page_url = f'{base_url}{open_page}'
+close_page = f'{base_url}{close_browser}'
+
+
+connect = sqlite3.connect(sqlite_abs_path)
 cursor = connect.cursor()
 
 
