@@ -6,7 +6,7 @@
 ## V2.0.0
 基于pyqt5的界面控制程序，第一版完成添加任务，执行添加推荐好友任务
 ```shell script
->> 使用管理员运行 facebook_interface/run.py
+>> 使用管理员运行 facebook_interface下的 run.py
 ```
 ## V1.0.5
 1.fb添加推荐好友
@@ -46,4 +46,10 @@ Not enough rights to use WM_*BUTTONDOWN/UP message/function for target process (
 ```
 
 ### Instagram
+
+1.ins发布帖子
+
+2.ins关注好友
+
+3.ins点赞帖子
 ### Tiktok

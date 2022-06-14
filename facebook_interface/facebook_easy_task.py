@@ -38,7 +38,6 @@ sqlite_abs_path = config['sqlite']['abs_path']
 open_page_url = f'{base_url}{open_page}'
 close_page = f'{base_url}{close_browser}'
 
-
 connect = sqlite3.connect(sqlite_abs_path)
 cursor = connect.cursor()
 
@@ -234,6 +233,7 @@ class FaceBookTask(QMainWindow, Ui_Form):
                 "权限不足",
                 '没有足够的权限\n请关闭本软件并使用管理员权限运行!!'
             )
+            self.able_button()
         elif data == 'browser_error':
             QMessageBox.warning(
                 self,
@@ -416,21 +416,25 @@ class StartTask(QThread):
                 self.update_data.emit('文件路径不存在!!!')
                 file_list = None
             if file_list:
-                # print(file_list)
+                print(file_list)
                 picture_list = [f'"{i}"' for i in file_list if 'txt' not in i]
-                # print(picture_list)
+                print(picture_list)
                 text_path = self.task_model.media_path + r'\txt.txt'
-                # print(text_path)
+                print(text_path)
                 with open(text_path, 'r', encoding='utf-8') as file:
                     content = file.read()
-                # print(content)
+                print(content)
                 try:
                     self.driver.get('https://www.facebook.com')
                     value = '//body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div/div[1]/div'
                     WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
                     value = '//body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[1]/div[1]/div/div/div/div/div/div/div[2]/div'
-                    WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(
-                        content)
+                    try:
+                        WebDriverWait(self.driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(
+                            content)
+                    except Exception as e:
+                        value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[1]/div[1]/div/div/div[1]'
+                        WebDriverWait(self.driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(content)
                     value = '//body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[3]/div[1]/div[2]/div/div[1]/div/span/div'
                     WebDriverWait(self.driver, 3).until(ec.presence_of_element_located((By.XPATH, value))).click()
                     value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[2]/div/div[1]/div/div/div'
@@ -502,6 +506,7 @@ class StartTask(QThread):
             self.close_browser()
         else:
             self.update_data.emit('没有找到小组链接')
+            self.close_browser()
 
     def share_page(self):
         self.update_data.emit('开始分享指定公共主页')
@@ -530,6 +535,7 @@ class StartTask(QThread):
             self.close_browser()
         else:
             self.update_data.emit('没有找到公共主页链接')
+            self.close_browser()
 
     def invite_like(self):
         self.update_data.emit('开始邀请好友为公共主页点赞')
@@ -561,6 +567,7 @@ class StartTask(QThread):
 
         else:
             self.update_data.emit('没有找到链接。。。')
+            self.close_browser()
 
     def close_browser(self):
         headers = {'id': self.profile_id}
