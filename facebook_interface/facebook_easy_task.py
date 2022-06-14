@@ -4,9 +4,8 @@
 import json
 import os
 import sys
-import pandas
 import sqlite3
-
+import base64
 import random
 import time
 import requests
@@ -25,8 +24,10 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5 import QtGui, QtWidgets, QtCore
-from interface import Ui_Form
+from interface import Ui_Form as MainWindow
+from login import Ui_Form as Auth
 from configparser import ConfigParser
+from Crypto.Cipher import AES
 
 sys.coinit_flags = 2
 config = ConfigParser()
@@ -85,9 +86,87 @@ class StartChrome:
             return 'error_2'
 
 
-class FaceBookTask(QMainWindow, Ui_Form):
+class AuthWindow(QMainWindow, Auth):
+    def __init__(self):
+        super(AuthWindow, self).__init__()
+        self.setupUi(self)
+        self.key = b'1590:{^$_-/.2nsb'
+        self.iv = b'sheridan214sw78e'
+        self.parse_auth_info()
+
+    def parse_auth_info(self):
+        sql = 'select Authorization from auth'
+        cursor.execute(sql)
+        res = cursor.fetchone()
+        if res:
+            text = self.return_auth(res[0])
+            encode_str = base64.encodebytes(text)
+            if encode_str.strip().decode('utf-8') in self.__auth_info__():
+                self.lineEdit.setText('您已授权！！')
+                self.lineEdit.setEnabled(False)
+                self.pushButton.setText('点击登录')
+                self.pushButton.clicked.connect(self.login)
+        else:
+            self.pushButton.clicked.connect(self.parse_input_auth)
+
+    def login(self):
+        self.close()
+        main_window.show()
+
+    def make_password(self, t):
+        obj = AES.new(self.key, AES.MODE_CBC, self.iv)
+        return obj.encrypt(bytes(t.encode('utf-8')))
+
+    def parse_input_auth(self):
+        text = self.lineEdit.text()
+        if text:
+            encode_str = base64.encodebytes(text.encode('utf-8'))
+            info = encode_str.decode('utf-8').strip()
+            if info in self.__auth_info__():
+                text = self.make_password(text)
+                sql = 'insert into auth(Authorization) values (?)'
+                cursor.execute(sql, (text, ))
+                connect.commit()
+                QMessageBox.information(
+                    self,
+                    '成功！',
+                    '您已成功授权！请重新进入本软件!'
+                )
+                self.close()
+                main_window.show()
+            else:
+                QMessageBox.warning(
+                    self,
+                    '错误',
+                    '授权码错误！'
+                )
+        else:
+            QMessageBox.warning(
+                self,
+                '错误',
+                '请输入授权码！'
+            )
+
+    def return_auth(self, s_auth):
+        obj = AES.new(self.key, AES.MODE_CBC, self.iv)
+        text = obj.decrypt(s_auth)
+        return text
+
+    @staticmethod
+    def __auth_info__():
+        auth_list = [
+            'NDU1M2FmNTVjOTM3NGFmOWEzZjdhMGM1ZDJlYTllNTc=',
+            'YmEzNmMxMDYzYTg1NDAwNGJjYTY5Mjk3M2Y0YjVmZjc=',
+            'Yzk1NGYxYWZiMWY1NDFiMDg5MmRiNDdlOWQwOThmNzQ=',
+            'ODhmNjQxM2Q2YTNjNDhmN2IwNWU5NWFmNGI4MjUzMjU='
+        ]
+        return auth_list
+
+
+class FaceBookTask(QMainWindow, MainWindow):
     def __init__(self):
         super(FaceBookTask, self).__init__()
+        self.setWindowIcon(QIcon('a4ttb-t6tco-002.ico'))
         self.setupUi(self)
         self.show_interface()
         self.set_combobox_text()
@@ -630,8 +709,13 @@ class StartTask(QThread):
             eval(self.task_dict.get(self.task_model.task_type))
 
 
-def run():
+if __name__ == '__main__':
+
     app = QApplication(sys.argv)
-    main = FaceBookTask()
-    main.show()
+    main_window = FaceBookTask()
+    auth_window = AuthWindow()
+    auth_window.show()
     sys.exit(app.exec_())
+
+
+
