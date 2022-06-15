@@ -4,9 +4,9 @@ dist
 .idea
 __pycache__
 *.log
-
+*.zip
 test.py
-
+exe_file
 
 
 

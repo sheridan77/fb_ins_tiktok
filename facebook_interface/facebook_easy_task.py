@@ -445,6 +445,8 @@ class StartTask(QThread):
             if file_list:
                 # print(file_list)
                 picture_list = [f'"{i}"' for i in file_list if 'txt' not in i]
+                if len(picture_list) == 1:
+                    picture_list = [picture_list[0].replace('"', '')]
                 # print(picture_list)
                 text_path = self.task_model.media_path + r'\txt.txt'
                 # print(text_path)
@@ -495,14 +497,16 @@ class StartTask(QThread):
                 self.update_data.emit('文件路径不存在!!!')
                 file_list = None
             if file_list:
-                print(file_list)
+                # print(file_list)
                 picture_list = [f'"{i}"' for i in file_list if 'txt' not in i]
-                print(picture_list)
+                if len(picture_list) == 1:
+                    picture_list = [picture_list[0].replace('"', '')]
+                # print(picture_list)
                 text_path = self.task_model.media_path + r'\txt.txt'
-                print(text_path)
+                # print(text_path)
                 with open(text_path, 'r', encoding='utf-8') as file:
                     content = file.read()
-                print(content)
+                # print(content)
                 try:
                     self.driver.get('https://www.facebook.com')
                     value = '//body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div/div[1]/div'
