@@ -25,7 +25,6 @@ pandas = "==1.3.5"
 pycparser = "==2.21"
 pymysql = "==1.0.2"
 pyopenssl = "==22.0.0"
-pyqt5 = "==5.15.4"
 pyqt5-plugins = "==5.15.4.2.2"
 pyqt5-qt5 = "==5.15.2"
 pyqt5-sip = "==12.10.1"
@@ -54,6 +53,8 @@ pycryptodome = "*"
 pyinstaller = "*"
 login = "*"
 interface = "*"
+pyqt5 = "==5.15.6"
+xlrd = "*"
 
 [dev-packages]
 

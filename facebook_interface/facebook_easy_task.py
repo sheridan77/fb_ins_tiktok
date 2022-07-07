@@ -11,6 +11,7 @@ import time
 import requests
 import pandas
 import selenium
+import ctypes
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -35,7 +36,7 @@ config.read('config.ini', encoding='utf-8')
 base_url = config['api settings']['base_url']
 open_page = config['api settings']['open_page']
 close_browser = config['api settings']['close_browser']
-sqlite_abs_path = config['sqlite']['abs_path']
+sqlite_abs_path = config['sqlite']['facebook_abs_path']
 open_page_url = f'{base_url}{open_page}'
 close_page = f'{base_url}{close_browser}'
 
@@ -94,6 +95,18 @@ class AuthWindow(QMainWindow, Auth):
         self.iv = b'sheridan214sw78e'
         self.parse_auth_info()
 
+    def is_admin(self):
+        if ctypes.windll.shell32.IsUserAnAdmin():
+            return True
+        else:
+            QMessageBox.warning(
+                self,
+                '错误',
+                '请使用管理员权限运行程序！',
+                QMessageBox.No | QMessageBox.Ok,
+            )
+            return False
+
     def parse_auth_info(self):
         sql = 'select Authorization from auth'
         cursor.execute(sql)
@@ -110,8 +123,11 @@ class AuthWindow(QMainWindow, Auth):
             self.pushButton.clicked.connect(self.parse_input_auth)
 
     def login(self):
-        self.close()
-        main_window.show()
+        if self.is_admin():
+            self.close()
+            main_window.show()
+        else:
+            self.close()
 
     def make_password(self, t):
         obj = AES.new(self.key, AES.MODE_CBC, self.iv)
@@ -217,6 +233,7 @@ class FaceBookTask(QMainWindow, MainWindow):
         self.pushButton_like.clicked.connect(lambda: self.parse_task('like'))
         self.pushButton_public_own.clicked.connect(lambda: self.parse_task('publish_own'))
         self.pushButton_public_all.clicked.connect(lambda: self.parse_task('publish_public_page'))
+        self.pushButton_public_group.clicked.connect(lambda: self.parse_task('pub_group'))
 
     def confirm_account(self):
         self.set_combobox_text()
@@ -427,8 +444,72 @@ class StartTask(QThread):
             'add_group': 'self.add_group()',
             'like': 'self.like()',
             'publish_own': 'self.publish_own()',
-            'publish_public_page': 'self.publish_public_page()'
+            'publish_public_page': 'self.publish_public_page()',
+            'pub_group': 'self.pub_group()'
         }
+
+    def pub_group(self):
+        import pywinauto
+        from pywinauto.keyboard import send_keys
+        dir_path = self.task_model.media_path
+        try:
+            file_list = os.listdir(dir_path)
+        except FileNotFoundError:
+            self.update_data.emit('文件路径不存在')
+            file_list = None
+
+        if file_list:
+            # print(file_list)
+            picture_list = [f'"{i}"' for i in file_list if 'txt' not in i]
+            if len(picture_list) == 1:
+                picture_list = [picture_list[0].replace('"', '')]
+            # print(picture_list)
+            try:
+                text_path = self.task_model.media_path + r'\txt.txt'
+                # print(text_path)
+                with open(text_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+            except FileNotFoundError:
+                content = None
+                pass
+            for _ in range(3):
+                self.driver.get('https://www.facebook.com/groups/feed/')
+                elements = self.driver.find_elements(by=By.XPATH, value='//div[@class="j83agx80 cbu4d94t buofh1pr l9j0dhe7"]/div[@style="padding-left: 8px; padding-right: 8px;"]/a')
+                element = random.choice(elements)
+                element.click()
+                time.sleep(2)
+                try:
+                    value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[2]/div/div/div/div/div[1]/div[1]/div/div/div/div[1]/div'
+                    WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                except Exception as e:
+                    try:
+                        value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div[3]/div/div/div/div/div/div[1]/div[1]/div/div/div/div[1]/div'
+                        WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                    except Exception as e:
+                        continue
+                if content:
+                    WebDriverWait(self.driver, 10).until(
+                        ec.presence_of_element_located((By.XPATH, '//div[@aria-label="发布公开帖…"]'))).send_keys(content)
+                try:
+                    WebDriverWait(self.driver, 10).until(
+                        ec.presence_of_element_located((By.XPATH, '//div[@aria-label="照片/视频"]'))).click()
+                except Exception as e:
+                    continue
+                app = pywinauto.Desktop()
+                window = app['打开']
+                window['Toolbar3'].click()
+                send_keys(self.task_model.media_path)
+                send_keys("{VK_RETURN}")
+                window['文件名(&N):Edit'].type_keys(' '.join(picture_list))
+                time.sleep(1)
+                # window["打开(&O)"].click()
+                send_keys("{VK_RETURN}")
+                time.sleep(10)
+                WebDriverWait(self.driver, 10).until(
+                    ec.presence_of_element_located((By.XPATH, '//div[@aria-label="发布"]'))).click()
+                time.sleep(5)
+            self.task_model.status['小组发表帖子'] += 1
+            self.close_browser()
 
     def publish_public_page(self):
         self.update_data.emit('开始在公共主页发表文章')
@@ -448,36 +529,73 @@ class StartTask(QThread):
                 if len(picture_list) == 1:
                     picture_list = [picture_list[0].replace('"', '')]
                 # print(picture_list)
-                text_path = self.task_model.media_path + r'\txt.txt'
-                # print(text_path)
-                with open(text_path, 'r', encoding='utf-8') as file:
-                    content = file.read()
                 try:
+                    text_path = self.task_model.media_path + r'\txt.txt'
+                    # print(text_path)
+                    with open(text_path, 'r', encoding='utf-8') as file:
+                        content = file.read()
+                except FileNotFoundError:
+                    content = None
+                    pass
+                try:
+                    self.driver.maximize_window()
                     self.driver.get('https://www.facebook.com/pages/?category=your_pages&ref=bookmarks')
                     value = '/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[1]/div/div[2]/div[1]/div[2]/div[2]/div/a'
                     WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
                     WebDriverWait(self.driver, 10).until(
                         ec.presence_of_element_located((By.XPATH, '//div[@aria-label="发帖"]'))).click()
                     value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div[2]/div/div[2]/div[1]/div/div[1]/div[1]/div/div/div/div/div/div/div[2]/div'
-                    WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(
-                        content)
+                    time.sleep(2)
                     WebDriverWait(self.driver, 10).until(
                         ec.presence_of_element_located((By.XPATH, '//div[@aria-label="照片/视频"]'))).click()
-                    app = pywinauto.Desktop()
-                    window = app['打开']
+                    value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div[2]/div/div[2]/div[1]/div/div[2]/div/div[1]/div/div[1]/div'
+                    WebDriverWait(self.driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                    try:
+                        app = pywinauto.Desktop()
+                        window = app['打开']
+                    except Exception as e:
+                        value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div[2]/div/div[2]/div[1]/div/div[2]/div/div[1]/div/div[1]/div'
+                        WebDriverWait(self.driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).click()
+                        app = pywinauto.Desktop()
+                        window = app['打开']
                     window['Toolbar3'].click()
                     send_keys(self.task_model.media_path)
                     send_keys("{VK_RETURN}")
-                    window['文件名(&N):Edit'].type_keys(' '.join(picture_list))
+                    picture = '  '.join(picture_list)
+                    window['文件名(&N):Edit'].type_keys(picture)
                     time.sleep(1)
                     # window["打开(&O)"].click()
                     send_keys("{VK_RETURN}")
+                    time.sleep(30)
+                    self.update_data.emit('发送文字')
+                    value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div[2]/div/div[2]/div[1]/div/div[1]/div[1]/div/div/div/div/div/div/div[2]/div'
+                    if content:
+                        WebDriverWait(self.driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(
+                            content)
+                    else:
+                        WebDriverWait(self.driver, 5).until(
+                            ec.presence_of_element_located((By.XPATH, value))).send_keys(
+                            '  ')
+                    time.sleep(2)
+                    self.update_data.emit("点击发送按钮")
+                    try:
+                        value = '//div[@aria-label="发帖"]'
+                        element = self.driver.find_elements(by=By.XPATH, value=value)[-1]
+                        element.click()
+                        value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div[2]/div/div[2]/div[1]/div/div[1]/div[1]/div/div/div/div/div/div/div[2]/div'
+                        WebDriverWait(self.driver, 10).until(ec.element_to_be_clickable((By.XPATH, value))).send_keys(Keys.ENTER)
+                        WebDriverWait(self.driver, 10).until(ec.element_to_be_clickable((By.XPATH, value))).click()
+                    except Exception as e:
+                        pass
                     time.sleep(10)
-                    element = self.driver.find_elements(by=By.XPATH, value='//div[@aria-label="发帖"]')[-1]
-                    element.click()
+                    # e.send_keys(Keys.ENTER)
+                    # element = self.driver.find_element(by=By.XPATH, value='//div[@aria-label="发帖"]')
+                    # element.send_keys(Keys.ENTER)
+                    self.update_data.emit('发表成功!')
                 except RuntimeError:
                     self.update_data.emit('权限不足')
                 except Exception as e:
+                    self.update_data.emit(str(e))
                     self.update_data.emit('发表失败！！')
         else:
             self.update_data.emit('没有找到文件路径')
@@ -502,22 +620,29 @@ class StartTask(QThread):
                 if len(picture_list) == 1:
                     picture_list = [picture_list[0].replace('"', '')]
                 # print(picture_list)
-                text_path = self.task_model.media_path + r'\txt.txt'
-                # print(text_path)
-                with open(text_path, 'r', encoding='utf-8') as file:
-                    content = file.read()
-                # print(content)
+                try:
+                    text_path = self.task_model.media_path + r'\txt.txt'
+                    # print(text_path)
+                    with open(text_path, 'r', encoding='utf-8') as file:
+                        content = file.read()
+                    # print(content)
+                except FileNotFoundError:
+                    content = None
+                    pass
                 try:
                     self.driver.get('https://www.facebook.com')
+                    time.sleep(3)
                     value = '//body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div/div[1]/div'
                     WebDriverWait(self.driver, 10).until(ec.presence_of_element_located((By.XPATH, value))).click()
                     value = '//body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[1]/div[1]/div/div/div/div/div/div/div[2]/div'
-                    try:
-                        WebDriverWait(self.driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(
-                            content)
-                    except Exception as e:
-                        value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[1]/div[1]/div/div/div[1]'
-                        WebDriverWait(self.driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(content)
+                    if content:
+                        try:
+                            WebDriverWait(self.driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(
+                                content)
+                        except Exception as e:
+                            value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[1]/div[1]/div/div/div[1]'
+                            WebDriverWait(self.driver, 5).until(ec.presence_of_element_located((By.XPATH, value))).send_keys(content)
+                    time.sleep(2)
                     value = '//body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[3]/div[1]/div[2]/div/div[1]/div/span/div'
                     WebDriverWait(self.driver, 3).until(ec.presence_of_element_located((By.XPATH, value))).click()
                     value = '/html/body/div[1]/div/div[1]/div/div[4]/div/div/div[1]/div/div[2]/div/div/div/form/div/div[1]/div/div/div/div[2]/div[1]/div[2]/div/div[1]/div/div/div'
@@ -527,7 +652,8 @@ class StartTask(QThread):
                     window['Toolbar3'].click()
                     send_keys(self.task_model.media_path)
                     send_keys("{VK_RETURN}")
-                    window['文件名(&N):Edit'].type_keys(' '.join(picture_list))
+                    picture = '  '.join(picture_list)
+                    window['文件名(&N):Edit'].type_keys(picture)
                     time.sleep(1)
                     # window["打开(&O)"].click()
                     send_keys("{VK_RETURN}")
@@ -539,6 +665,7 @@ class StartTask(QThread):
                 except RuntimeError:
                     self.update_data.emit('权限不足')
                 except Exception as e:
+                    self.update_data.emit(str(e))
                     self.update_data.emit('发表失败！')
         else:
             self.update_data.emit('没有找到这个文件路径耶')
